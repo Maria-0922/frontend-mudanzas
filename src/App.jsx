@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
+import "./App.css";
 
 function App() {
-
   const [clientes, setClientes] = useState([]);
 
   const [cliente, setCliente] = useState({
@@ -12,17 +12,37 @@ function App() {
     direccion: ""
   });
 
+  const [cotizacion, setCotizacion] = useState({
+    origen: "",
+    destino: "",
+    distancia: "",
+    objetos: "",
+    pisoOrigen: "",
+    pisoDestino: "",
+    fecha: "",
+    estado: "Pendiente"
+  });
+
+  const [total, setTotal] = useState(0);
+  const [mensaje, setMensaje] = useState("");
+
+  const API_URL = "http://localhost:8080/api/clientes";
+
   const obtenerClientes = async () => {
-    const response = await fetch("http://localhost:8080/api/clientes");
-    const data = await response.json();
-    setClientes(data);
+    try {
+      const response = await fetch(API_URL);
+      const data = await response.json();
+      setClientes(data);
+    } catch (error) {
+      setMensaje("No se pudo conectar con el backend");
+    }
   };
 
   useEffect(() => {
     obtenerClientes();
   }, []);
 
-  const handleChange = (e) => {
+  const manejarCambioCliente = (e) => {
     setCliente({
       ...cliente,
       [e.target.name]: e.target.value
@@ -30,8 +50,12 @@ function App() {
   };
 
   const guardarCliente = async () => {
+    if (!cliente.nombre || !cliente.apellido || !cliente.telefono) {
+      setMensaje("Completa nombre, apellido y teléfono");
+      return;
+    }
 
-    await fetch("http://localhost:8080/api/clientes", {
+    await fetch(API_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
@@ -47,116 +71,212 @@ function App() {
       direccion: ""
     });
 
+    setMensaje("Cliente guardado correctamente");
     obtenerClientes();
   };
 
-const eliminarCliente = async (id) => {
-  await fetch(`http://localhost:8080/api/clientes/${id}`, {
-    method: "DELETE"
-  });
+  const eliminarCliente = async (id) => {
+   await fetch(`${API_URL}/${id}`, {
+     method: "DELETE"
+   });
 
-  obtenerClientes();
-};
+    setMensaje("Cliente eliminado correctamente");
+    obtenerClientes();
+  };
+
+  const manejarCambioCotizacion = (e) => {
+    setCotizacion({
+      ...cotizacion,
+      [e.target.name]: e.target.value
+    });
+  };
+
+  const calcularCotizacion = () => {
+    const tarifaBase = 80000;
+    const valorKm = Number(cotizacion.distancia) * 3000;
+    const valorObjetos = Number(cotizacion.objetos) * 5000;
+    const valorPisos =
+      (Number(cotizacion.pisoOrigen) + Number(cotizacion.pisoDestino)) * 10000;
+
+    const totalCalculado = tarifaBase + valorKm + valorObjetos + valorPisos;
+
+    setTotal(totalCalculado);
+    setMensaje("Cotización calculada correctamente");
+  };
 
   return (
-    <div style={{ padding: "30px", fontFamily: "Arial" }}>
+    <div className="contenedor">
+      <header className="encabezado">
+        <h1>Sistema de Gestión de Mudanzas</h1>
+        <p>Gestión de clientes, servicios y cotizaciones de mudanza</p>
+      </header>
 
-      <h1>Sistema de Clientes</h1>
+      {mensaje && <div className="mensaje">{mensaje}</div>}
 
-      <div style={{ marginBottom: "20px" }}>
+      <section className="grid">
+        <div className="card">
+          <h2>Registro de Clientes</h2>
 
-        <input
-          type="text"
-          name="nombre"
-          placeholder="Nombre"
-          value={cliente.nombre}
-          onChange={handleChange}
-        />
+          <input
+            name="nombre"
+            placeholder="Nombre"
+            value={cliente.nombre}
+            onChange={manejarCambioCliente}
+          />
 
-        <br /><br />
+          <input
+            name="apellido"
+            placeholder="Apellido"
+            value={cliente.apellido}
+            onChange={manejarCambioCliente}
+          />
 
-        <input
-          type="text"
-          name="apellido"
-          placeholder="Apellido"
-          value={cliente.apellido}
-          onChange={handleChange}
-        />
+          <input
+            name="telefono"
+            placeholder="Teléfono"
+            value={cliente.telefono}
+            onChange={manejarCambioCliente}
+          />
 
-        <br /><br />
+          <input
+            name="correo"
+            placeholder="Correo"
+            value={cliente.correo}
+            onChange={manejarCambioCliente}
+          />
 
-        <input
-          type="text"
-          name="telefono"
-          placeholder="Telefono"
-          value={cliente.telefono}
-          onChange={handleChange}
-        />
+          <input
+            name="direccion"
+            placeholder="Dirección"
+            value={cliente.direccion}
+            onChange={manejarCambioCliente}
+          />
 
-        <br /><br />
+          <button className="btn-principal" onClick={guardarCliente}>
+            Guardar Cliente
+          </button>
+        </div>
 
-        <input
-          type="text"
-          name="correo"
-          placeholder="Correo"
-          value={cliente.correo}
-          onChange={handleChange}
-        />
+        <div className="card">
+          <h2>Cotización de Mudanza</h2>
 
-        <br /><br />
+          <input
+            name="origen"
+            placeholder="Ciudad o dirección de origen"
+            value={cotizacion.origen}
+            onChange={manejarCambioCotizacion}
+          />
 
-        <input
-          type="text"
-          name="direccion"
-          placeholder="Direccion"
-          value={cliente.direccion}
-          onChange={handleChange}
-        />
+          <input
+            name="destino"
+            placeholder="Ciudad o dirección de destino"
+            value={cotizacion.destino}
+            onChange={manejarCambioCotizacion}
+          />
 
-        <br /><br />
+          <input
+            type="number"
+            name="distancia"
+            placeholder="Distancia en km"
+            value={cotizacion.distancia}
+            onChange={manejarCambioCotizacion}
+          />
 
-        <button onClick={guardarCliente}>
-          Guardar Cliente
-        </button>
+          <input
+            type="number"
+            name="objetos"
+            placeholder="Cantidad de objetos"
+            value={cotizacion.objetos}
+            onChange={manejarCambioCotizacion}
+          />
 
-      </div>
+          <input
+            type="number"
+            name="pisoOrigen"
+            placeholder="Piso origen"
+            value={cotizacion.pisoOrigen}
+            onChange={manejarCambioCotizacion}
+          />
 
-      <table border="1" cellPadding="10">
+          <input
+            type="number"
+            name="pisoDestino"
+            placeholder="Piso destino"
+            value={cotizacion.pisoDestino}
+            onChange={manejarCambioCotizacion}
+          />
 
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Nombre</th>
-            <th>Apellido</th>
-            <th>Telefono</th>
-            <th>Correo</th>
-            <th>Direccion</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
+          <input
+            type="date"
+            name="fecha"
+            value={cotizacion.fecha}
+            onChange={manejarCambioCotizacion}
+          />
 
-        <tbody>
+          <select
+            name="estado"
+            value={cotizacion.estado}
+            onChange={manejarCambioCotizacion}
+          >
+            <option>Pendiente</option>
+            <option>En proceso</option>
+            <option>Finalizado</option>
+          </select>
 
-          {clientes.map((c) => (
-            <tr key={c.id}>
-              <td>{c.id}</td>
-              <td>{c.nombre}</td>
-              <td>{c.apellido}</td>
-              <td>{c.telefono}</td>
-              <td>{c.correo}</td>
-              <td>{c.direccion}</td>
-              <td>
-                <button onClick={() => eliminarCliente(c.id)}>
-                  Eliminar
-                </button>
-              </td>
+          <button className="btn-secundario" onClick={calcularCotizacion}>
+            Calcular Cotización
+          </button>
+
+          {total > 0 && (
+            <div className="resultado">
+              <h3>Total estimado:</h3>
+              <p>${total.toLocaleString("es-CO")}</p>
+              <small>
+                Estado del servicio: <strong>{cotizacion.estado}</strong>
+              </small>
+            </div>
+          )}
+        </div>
+      </section>
+
+      <section className="card tabla-card">
+        <h2>Listado de Clientes</h2>
+
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Nombre</th>
+              <th>Apellido</th>
+              <th>Teléfono</th>
+              <th>Correo</th>
+              <th>Dirección</th>
+              <th>Acciones</th>
             </tr>
-          ))}
+          </thead>
 
-        </tbody>
-
-      </table>
-
+          <tbody>
+            {clientes.map((c) => (
+              <tr key={c.id}>
+                <td>{c.id}</td>
+                <td>{c.nombre}</td>
+                <td>{c.apellido}</td>
+                <td>{c.telefono}</td>
+                <td>{c.correo}</td>
+                <td>{c.direccion}</td>
+                <td>
+                  <button
+                    className="btn-eliminar"
+                    onClick={() => eliminarCliente(c.id)}
+                  >
+                    Eliminar
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </section>
     </div>
   );
 }
